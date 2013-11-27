@@ -1,0 +1,23 @@
+{
+	"name": "webrtc-experiments",
+	"version": "0.0.0",
+	"description": "WebRTC Server Relay for tests with WebRTC",
+	"author": {
+		"name": "Vincent Hiribarren"
+	},
+	"license": "MIT",
+	"private": true,
+	"scripts": {
+		"start": "nodejs server.js",
+		"test": "./node_modules/.bin/mocha -R spec"
+	},
+	"dependencies": {
+		"connect": "*",
+		"winston": "*",
+		"sockjs": "*"
+	},
+	"devDependencies": {
+		"mocha": "*",
+		"sockjs-client": "*"
+	}
+}

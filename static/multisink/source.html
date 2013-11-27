@@ -1,0 +1,133 @@
+<!DOCTYPE HTML>
+
+<title>Test page for video source</title>
+
+<script src="../lib/jquery-1.10.2.min.js"></script>
+<script src="../lib/sockjs-0.3.4.min.js"></script>
+<script src="../lib/webrtc-polyfill.js"></script>
+
+<button id="toggleButton">Start</button>
+<hr>
+<div id="videoContainer"></div>
+
+
+<script>
+(function(){
+
+var myId = "" + (new Date()).getTime() + "-" + Math.floor(Math.random()*100000);
+var rtcConfiguration = {"iceServers": [{"url": "stun:stun.l.google.com:19302"}]};
+var peerConnection = null;
+var localStream = null;
+
+$("#toggleButton").click(function() {
+	if (peerConnection === null) {
+		startWebRtc();
+	}
+	else {
+		stopWebRtc();	
+	}
+});
+
+var sock = new SockJS("http://"+window.location.host+"/sig"); 
+sock.onopen = function() {
+	console.log('Signalling channel opened.');
+	var message = {
+		type: "register",
+		from: myId
+	};
+	sock.send(JSON.stringify(message));
+};
+sock.onmessage = function(e) {
+    console.log('Message received: ', e.data);
+	sockDispatcher(JSON.parse(e.data));
+};
+sock.onclose = function() {
+	stopWebRtc();
+    console.log('Signalling channel closed.');
+};
+sock.onerror = function(error) {
+	console.log("Signalling channel error: "+ error);
+};
+
+
+function startWebRtc() {
+	if (peerConnection !== null) return;
+	$("#toggleButton").html("Stop");
+	var video = $("#liveVideo").get(0);
+	getUserMedia(
+		{video: true},
+		function(stream) {
+			var video = $("<video width='320' height='240' autoplay></video>");
+        	video.get(0).src = URL.createObjectURL(stream);
+        	video.hide().appendTo("#videoContainer").fadeIn(1000);
+			initWebRTC(stream);
+			localStream = stream;
+		},
+		function(error) {
+			console.log("Error: "+ error);
+		});
+}
+
+function stopWebRtc() {
+	if (peerConnection === null) return;
+ 	$("#toggleButton").html("Start");
+	peerConnection.close();
+	peerConnection = null;
+	var msg = {type: 'stopStream', from: myId, to: "sink"};
+	sock.send(JSON.stringify(msg));
+	$("#videoContainer").empty();
+	localStream.stop();
+}
+
+function sockDispatcher(message) {
+	switch(message.type) {
+		case "sdpAnswer":
+			initRemoteStream(message.desc);
+			break;
+		case "iceCandidate":
+			addIceCandidate(message.candidate);
+			break;
+		case "broadcast":
+			if (message.what === "closed" && message.from === "sink") {
+				stopWebRtc();
+			}
+			break;
+		default:
+	}
+}
+
+function initWebRTC(localStream) {
+	peerConnection = new RTCPeerConnection(rtcConfiguration);
+	peerConnection.addStream(localStream);
+	peerConnection.createOffer(function(desc) {
+		peerConnection.setLocalDescription(desc);
+		console.log(desc);
+		var message = {
+			type: "sdpOffer",
+			desc: desc,
+			to: "sink",
+			from: myId
+		};
+		sock.send(JSON.stringify(message));
+	}, null, { 'mandatory': { 'OfferToReceiveAudio': false, 'OfferToReceiveVideo': false } });
+	peerConnection.onicecandidate = function(event) {
+		var message = {
+			type: "iceCandidate",
+			candidate: event.candidate,
+			to: "sink",
+			from: myId
+		};
+		sock.send(JSON.stringify(message));
+	};
+}
+
+function initRemoteStream(desc) {
+	peerConnection.setRemoteDescription(new RTCSessionDescription(desc));
+}
+
+function addIceCandidate(candidate) {
+	if(candidate == null) return;
+	peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+}
+
+})();</script>

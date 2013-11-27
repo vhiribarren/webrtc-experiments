@@ -1,0 +1,131 @@
+<!DOCTYPE HTML>
+
+<title>Test page for video sink</title>
+
+<script src="../lib/jquery-1.10.2.min.js"></script>
+<script src="../lib/sockjs-0.3.4.min.js"></script>
+<script src="../lib/webrtc-polyfill.js"></script>
+
+<style>
+.error {
+	color: red;
+}
+</style>
+
+
+<p>Identifiant of this WebRTC peer: sink.</p>
+<p>Keep this page open, and create a WebRTC video stream on 
+the <a href="source.html">source.html</a> webpage.</p>
+
+<div>Signalization status: <span id="status">Connecting...</span></div>
+
+<div id="videoContainer"></div>
+
+<script>
+(function(){
+
+var myId = "sink";
+var peerConnections = Object.create(null); // peer id -> rtcPeerConnection
+var rtcConfiguration = {"iceServers": [{"url": "stun:stun.l.google.com:19302"}]};
+
+var sock = new SockJS("http://"+window.location.host+"/sig");
+sock.onopen = function() {
+	console.log('Signalling channel opened.');
+	$("#status").html("Connected to server");
+    var message = {
+        type: "register",
+        from: myId
+    };
+    sock.send(JSON.stringify(message));
+};
+sock.onmessage = function(e) {
+    console.log('Message received: ', e.data);
+	sockDispatcher(JSON.parse(e.data));
+};
+sock.onclose = function() {
+	$("#status").html("Connection is closed.");
+    console.log('Signalling channel closed.');
+};
+sock.onerror = function(error) {
+	console.log("Signalling channel error: "+ error);
+};
+
+
+function sockDispatcher(message) {
+	switch(message.type) {
+		case "sdpOffer":
+			createStream(message.desc, message.from);
+			break;
+		case "iceCandidate":
+			addIceCandidate(message.candidate, message.from);
+			break;
+		case "broadcast":
+			if (message.what === "closed") {
+				removeStream(message.from);
+			}
+			break;
+		case "stopStream":
+			removeStream(message.from);
+			break;
+		case "error":
+			if (message.code === "duplicate-id") {
+				$("#status").html("<span class='error'>Error, another multi-sink web page is opened elsewhere.</span>");
+			}
+			else {
+				$("#status").html("<span class='error'>Error, " + message.code + "</span>");
+			}
+			break;
+		default:
+	}
+}
+
+function removeStream(peerId) {
+	$("video").each(function() {
+		if ($(this).data("peerId") === peerId) {
+			$(this).fadeOut(1000, function() {$(this).remove()});	
+		}
+	});
+	delete peerConnections[peerId];	
+}
+
+function createStream(desc, from) {
+	var peerConnection = new RTCPeerConnection(rtcConfiguration);
+	peerConnection.peerId = from;
+	peerConnection.setRemoteDescription(new RTCSessionDescription(desc));
+    peerConnection.createAnswer(function(desc) {
+        peerConnection.setLocalDescription(desc);
+        console.log(desc);
+        var message = {
+            type: "sdpAnswer",
+            desc: desc,
+			from: myId,
+			to: from 
+        };
+        sock.send(JSON.stringify(message));
+    });
+    peerConnection.onicecandidate = function(event) {
+        var message = {
+            type: "iceCandidate",
+            candidate: event.candidate,
+			from: myId,
+			to: from
+        };
+        sock.send(JSON.stringify(message));
+    };
+	peerConnection.onaddstream = function(event) {
+		var video = $("<video width='320' height='240' autoplay></video>");
+		video.get(0).src = URL.createObjectURL(event.stream);
+		video.data("peerId",  this.peerId);
+		console.log("Adding a stream for peerId: "+ this.peerId);
+		video.hide().appendTo("#videoContainer").fadeIn(1000);
+	};
+	peerConnections[from] = peerConnection;
+}
+
+function addIceCandidate(candidate, from) {
+	if (candidate === null) return;
+	var peerConnection = peerConnections[from];
+	peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+}
+
+})();</script>
