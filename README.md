@@ -37,7 +37,7 @@ Using SockJS, each client must send a register packet with its own id:
 
 In case of success, an ok is sent back:
 
-    {'type': 'register', 'from': 'myId'}
+    {'type': 'ok', 'what': 'register'}
 
 In case of error, an error is sent back:
 
