@@ -22,12 +22,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+var domain = require("domain");
 var winston = require("winston");
 var connect = require("connect");
 var sockjs = require("sockjs");
 var http = require("http");
 var config = require("./config.js");
 var registrar = require("./lib/registrar.js");
+
 
 // Constants
 ////////////
@@ -53,12 +55,23 @@ app.use(connect.static(STATIC_DIR));
 app.use(connect.directory(STATIC_DIR));
 
 var httpServer = http.createServer(app);
+httpServer.on("listening", function() {
+    logger.info("WebRTC signalization server started on port %s", config.server.port);
+});
 
 var sockjsRegistrar = registrar.createSockjsServer();
 sockjsRegistrar.installHandlers(httpServer, {prefix: SIG_PREFIX});
 
-httpServer.listen(config.server.port);
-httpServer.on("listening", function() {
-	logger.info("WebRTC signalization server started.");
+var errorDomain = domain.create();
+errorDomain.on('error', function(err) {
+	if(err.code === "EADDRINUSE") {
+		logger.error("Port %s is already in use, stopping.", config.server.port);
+	}
+	else {
+		logger.error(err);
+	}
+});
+errorDomain.run(function() {
+	httpServer.listen(config.server.port);
 });
 
