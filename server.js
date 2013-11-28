@@ -56,7 +56,7 @@ app.use(connect.directory(STATIC_DIR));
 
 var httpServer = http.createServer(app);
 httpServer.on("listening", function() {
-    logger.info("WebRTC signalization server started on port %s", config.server.port);
+	logger.info("WebRTC signalization server started on port %s", config.server.port);
 });
 
 var sockjsRegistrar = registrar.createSockjsServer();

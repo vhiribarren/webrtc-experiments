@@ -32,19 +32,19 @@ var sock = new SockJS("http://"+window.location.host+"/sig");
 sock.onopen = function() {
 	console.log('Signalling channel opened.');
 	$("#status").html("Connected to server");
-    var message = {
-        type: "register",
-        from: myId
-    };
-    sock.send(JSON.stringify(message));
+	var message = {
+		type: "register",
+		from: myId
+	};
+	sock.send(JSON.stringify(message));
 };
 sock.onmessage = function(e) {
-    console.log('Message received: ', e.data);
+	console.log('Message received: ', e.data);
 	sockDispatcher(JSON.parse(e.data));
 };
 sock.onclose = function() {
 	$("#status").html("Connection is closed.");
-    console.log('Signalling channel closed.');
+	console.log('Signalling channel closed.');
 };
 sock.onerror = function(error) {
 	console.log("Signalling channel error: "+ error);
@@ -92,26 +92,26 @@ function createStream(desc, from) {
 	var peerConnection = new RTCPeerConnection(rtcConfiguration);
 	peerConnection.peerId = from;
 	peerConnection.setRemoteDescription(new RTCSessionDescription(desc));
-    peerConnection.createAnswer(function(desc) {
-        peerConnection.setLocalDescription(desc);
-        console.log(desc);
-        var message = {
-            type: "sdpAnswer",
-            desc: desc,
+	peerConnection.createAnswer(function(desc) {
+		peerConnection.setLocalDescription(desc);
+		console.log(desc);
+		var message = {
+			type: "sdpAnswer",
+			desc: desc,
 			from: myId,
 			to: from 
-        };
-        sock.send(JSON.stringify(message));
-    });
-    peerConnection.onicecandidate = function(event) {
-        var message = {
-            type: "iceCandidate",
-            candidate: event.candidate,
+		};
+		sock.send(JSON.stringify(message));
+	});
+	peerConnection.onicecandidate = function(event) {
+		var message = {
+			type: "iceCandidate",
+			candidate: event.candidate,
 			from: myId,
 			to: from
-        };
-        sock.send(JSON.stringify(message));
-    };
+		};
+		sock.send(JSON.stringify(message));
+	};
 	peerConnection.onaddstream = function(event) {
 		var video = $("<video width='320' height='240' autoplay></video>");
 		video.get(0).src = URL.createObjectURL(event.stream);

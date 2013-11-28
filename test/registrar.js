@@ -41,7 +41,7 @@ describe("Signalization", function() {
 
 	before(function(done) {
 		var sockjsRegistrar = registrar.createSockjsServer();
-    	sockjsRegistrar.installHandlers(server, {prefix: "/sig"});
+		sockjsRegistrar.installHandlers(server, {prefix: "/sig"});
 		server.once("listening", done);
 		server.listen(serverPort);
 	});	
@@ -71,112 +71,112 @@ describe("Signalization", function() {
 			client.write("hello world");
 		});
 		it("should return error if no 'type' field exist", function(done) {
-            client.once('data', function(msg) {
-                var parsedMsg = JSON.parse(msg);
-                assert.equal(parsedMsg.type, 'error');
+			client.once('data', function(msg) {
+				var parsedMsg = JSON.parse(msg);
+				assert.equal(parsedMsg.type, 'error');
 				assert.equal(parsedMsg.code, 'no-type');
-                done();
-            });
-            client.write(JSON.stringify({hello: 'world'}));
+				done();
+			});
+			client.write(JSON.stringify({hello: 'world'}));
 		});
 	});
 
 
 	describe("Registration", function() {
-        var client;
-        beforeEach(function(done) {
-            client = sockjs.create(serverUrl);
-            client.once('connection', done);
-        });
-        afterEach(function(done) {
+		var client;
+		beforeEach(function(done) {
+			client = sockjs.create(serverUrl);
+			client.once('connection', done);
+		});
+		afterEach(function(done) {
 			client.once('close', function() {done();});
 			client.close();
-        });
+		});
 		it("should refuse any message if not registered", function(done) {
-            client.once('data', function(msg) {
-                var parsedMsg = JSON.parse(msg);
-                assert.equal(parsedMsg.type, 'error');
+			client.once('data', function(msg) {
+				var parsedMsg = JSON.parse(msg);
+				assert.equal(parsedMsg.type, 'error');
 				assert.equal(parsedMsg.code, 'not-registered');
-                done();
-            });
-            client.write(JSON.stringify({type: 'sdpOffer', desc:'sample', from: 'myId'}));
+				done();
+			});
+			client.write(JSON.stringify({type: 'sdpOffer', desc:'sample', from: 'myId'}));
 		});
 		it("should refuse a registration with no from field", function(done) {
-            client.once('data', function(msg) {
-                var parsedMsg = JSON.parse(msg);
-                assert.equal(parsedMsg.type, 'error');
+			client.once('data', function(msg) {
+				var parsedMsg = JSON.parse(msg);
+				assert.equal(parsedMsg.type, 'error');
 				assert.equal(parsedMsg.code, 'no-from');
-                done();
-            });
-            client.write(JSON.stringify({type: 'register'}));
+				done();
+			});
+			client.write(JSON.stringify({type: 'register'}));
 		});
 		it("should answer 'ok' when registration succeed", function(done) {
-            client.once('data', function(msg) {
-                var parsedMsg = JSON.parse(msg);
-                assert.equal(parsedMsg.type, 'ok');
+			client.once('data', function(msg) {
+				var parsedMsg = JSON.parse(msg);
+				assert.equal(parsedMsg.type, 'ok');
 				assert.equal(parsedMsg.what, 'register');
-                done();
-            });
-            client.write(JSON.stringify({type: 'register', from: "myId"}));
+				done();
+			});
+			client.write(JSON.stringify({type: 'register', from: "myId"}));
 		});
 		it("should refuse registration if another client is already registered with same id", function(done) {
 			var otherClient = sockjs.create(serverUrl);
 			otherClient.once('connection', function() {
 	            client.write(JSON.stringify({type: 'register', from: 'myId'}));
 			});
-            client.once('data', function(msg) {
-            	var parsedMsg = JSON.parse(msg);
-            	assert.equal(parsedMsg.type, 'ok');
+			client.once('data', function(msg) {
+				var parsedMsg = JSON.parse(msg);
+				assert.equal(parsedMsg.type, 'ok');
 				otherClient.write(JSON.stringify({type: 'register', from: 'myId'}));
-            });
-            otherClient.once('data', function(msg) {
-                var parsedMsg = JSON.parse(msg);
-                assert.equal(parsedMsg.type, 'error');
+			});
+			otherClient.once('data', function(msg) {
+				var parsedMsg = JSON.parse(msg);
+				assert.equal(parsedMsg.type, 'error');
 				assert.equal(parsedMsg.code, 'duplicate-id');
 				done();
-            });
+			});
 		});
 		it("should refuse messages if destination peer is not connected", function(done) {
-            client.once('data', function(msg) {
-                var parsedMsg = JSON.parse(msg);
-                assert.equal(parsedMsg.type, 'ok');
+			client.once('data', function(msg) {
+				var parsedMsg = JSON.parse(msg);
+				assert.equal(parsedMsg.type, 'ok');
 				client.once('data', function(msg) {
 	                var parsedMsg = JSON.parse(msg);
-   		            assert.equal(parsedMsg.type, 'error');
+		            assert.equal(parsedMsg.type, 'error');
 					assert.equal(parsedMsg.code, 'peer-unavailable');
 					done();
 				});
 				client.write(JSON.stringify({type: "sdpOffer", from: "myId", to: "otherId", desc: "sample"}));
-            });
-            client.write(JSON.stringify({type: 'register', from: "myId"}));
+			});
+			client.write(JSON.stringify({type: 'register', from: "myId"}));
 		});
-        it("should refuse messages sent to oneself", function(done) {
-            client.once('data', function(msg) {
-                var parsedMsg = JSON.parse(msg);
-                assert.equal(parsedMsg.type, 'ok');
-                client.once('data', function(msg) {
-                    var parsedMsg = JSON.parse(msg);
-                    assert.equal(parsedMsg.type, 'error');
+		it("should refuse messages sent to oneself", function(done) {
+			client.once('data', function(msg) {
+				var parsedMsg = JSON.parse(msg);
+				assert.equal(parsedMsg.type, 'ok');
+				client.once('data', function(msg) {
+					var parsedMsg = JSON.parse(msg);
+					assert.equal(parsedMsg.type, 'error');
 					assert.equal(parsedMsg.code, 'oneself-forbidden');
-                    done();
-                });
-                client.write(JSON.stringify({type: "sdpOffer", from: "myId", to: "myId", desc: "sample"}));
-            });
-            client.write(JSON.stringify({type: 'register', from: "myId"}));
-        });
+					done();
+				});
+				client.write(JSON.stringify({type: "sdpOffer", from: "myId", to: "myId", desc: "sample"}));
+			});
+			client.write(JSON.stringify({type: 'register', from: "myId"}));
+		});
 		it("should refuse another register from the same client after a first one", function(done) {
-            client.once('data', function(msg) {
-                var parsedMsg = JSON.parse(msg);
-                assert.equal(parsedMsg.type, 'ok');
-                client.once('data', function(msg) {
-                    var parsedMsg = JSON.parse(msg);
-                    assert.equal(parsedMsg.type, 'error');
-                    assert.equal(parsedMsg.code, 'already-registered');
-                    done();
-                });
-                client.write(JSON.stringify({type: "register", from: "myId"}));
-            });
-            client.write(JSON.stringify({type: 'register', from: "myId"}));
+			client.once('data', function(msg) {
+				var parsedMsg = JSON.parse(msg);
+				assert.equal(parsedMsg.type, 'ok');
+				client.once('data', function(msg) {
+					var parsedMsg = JSON.parse(msg);
+					assert.equal(parsedMsg.type, 'error');
+					assert.equal(parsedMsg.code, 'already-registered');
+					done();
+				});
+				client.write(JSON.stringify({type: "register", from: "myId"}));
+			});
+			client.write(JSON.stringify({type: 'register', from: "myId"}));
 		});
 	});
 
@@ -185,10 +185,10 @@ describe("Signalization", function() {
 		var client;
 		var otherClient;
 		beforeEach(function(done) {
-            client = sockjs.create(serverUrl);
-            client.once('connection', function() {
-                connectOtherClient();
-            });
+			client = sockjs.create(serverUrl);
+			client.once('connection', function() {
+				connectOtherClient();
+			});
 			function connectOtherClient() {
 				otherClient = sockjs.create(serverUrl);
 				otherClient.once('connection', registerClient);	
@@ -198,8 +198,8 @@ describe("Signalization", function() {
 				client.once('data', registerOtherClient);
 			}
 			function registerOtherClient() {
-                otherClient.write(JSON.stringify({type: 'register', from: "otherId"}));
-                otherClient.once('data', function() {done();});
+				otherClient.write(JSON.stringify({type: 'register', from: "otherId"}));
+				otherClient.once('data', function() {done();});
 			}
 		});
 		afterEach(function(done) {
@@ -216,54 +216,54 @@ describe("Signalization", function() {
 			});
 		});
 		it("should refuse a message with a 'from' different from the one registered", function(done) {
-            client.write(JSON.stringify({type: 'sdpOffer', to: 'otherId', from: "fakeId", desc: 'sample'}));
-            client.once('data', function(message) {
-                var parsedMsg = JSON.parse(message);
-                assert.strictEqual(parsedMsg.code, 'bad-from');
-                done();
-            });
+			client.write(JSON.stringify({type: 'sdpOffer', to: 'otherId', from: "fakeId", desc: 'sample'}));
+			client.once('data', function(message) {
+				var parsedMsg = JSON.parse(message);
+				assert.strictEqual(parsedMsg.code, 'bad-from');
+				done();
+			});
 		});
 		it("should transparently pass to another peer any message with a 'to' and a 'from'", function(done) {
 			var data = {type: 'blablablabla', to: 'otherId', from: "myId", data: ["hello"]};
 			client.write(JSON.stringify(data));
-            otherClient.once('data', function(message) {
-                var parsedMsg = JSON.parse(message);
-                assert.deepEqual(parsedMsg, data);
-                done();
-            });
+			otherClient.once('data', function(message) {
+				var parsedMsg = JSON.parse(message);
+				assert.deepEqual(parsedMsg, data);
+				done();
+			});
 		});
 	});
 
 
 	describe("Broadcast", function() {
-       	var client;
-        beforeEach(function(done) {
-            client = sockjs.create(serverUrl);
-            client.once('connection', function() {
+		var client;
+		beforeEach(function(done) {
+			client = sockjs.create(serverUrl);
+			client.once('connection', function() {
 				client.write(JSON.stringify({type: 'register', from: "myId"}));
 				client.once('data', function() {
 					done();
 				});
-            });
-        });
-        afterEach(function(done) {
-            client.once('close', function() {done();});
+			});
+		});
+		afterEach(function(done) {
+			client.once('close', function() {done();});
 			client.close();
-        });
-        it("should receive a broadcasted 'closed' message when a user disconnect", function(done) {
-            client.once('data', function(message) {
-                var parsedMsg = JSON.parse(message);
-                assert.equal(parsedMsg.type, 'broadcast');
-                assert.equal(parsedMsg.what, 'closed');
-                assert.equal(parsedMsg.from, 'otherId');
-                done();
-            });
+		});
+		it("should receive a broadcasted 'closed' message when a user disconnect", function(done) {
+			client.once('data', function(message) {
+				var parsedMsg = JSON.parse(message);
+				assert.equal(parsedMsg.type, 'broadcast');
+				assert.equal(parsedMsg.what, 'closed');
+				assert.equal(parsedMsg.from, 'otherId');
+				done();
+			});
 			var otherClient = sockjs.create(serverUrl);
 			otherClient.once('connection', function() {
 				otherClient.write(JSON.stringify({type: 'register', from: "otherId"}));
 				otherClient.once('data', function() { otherClient.close(); });
 			});
-        });
+		});
 	});
 
 });

@@ -38,12 +38,12 @@ sock.onopen = function() {
 	sock.send(JSON.stringify(message));
 };
 sock.onmessage = function(e) {
-    console.log('Message received: ', e.data);
+	console.log('Message received: ', e.data);
 	sockDispatcher(JSON.parse(e.data));
 };
 sock.onclose = function() {
 	stopWebRtc();
-    console.log('Signalling channel closed.');
+	console.log('Signalling channel closed.');
 };
 sock.onerror = function(error) {
 	console.log("Signalling channel error: "+ error);
@@ -58,8 +58,8 @@ function startWebRtc() {
 		{video: true},
 		function(stream) {
 			var video = $("<video width='320' height='240' autoplay></video>");
-        	video.get(0).src = URL.createObjectURL(stream);
-        	video.hide().appendTo("#videoContainer").fadeIn(1000);
+			video.get(0).src = URL.createObjectURL(stream);
+			video.hide().appendTo("#videoContainer").fadeIn(1000);
 			initWebRTC(stream);
 			localStream = stream;
 		},
@@ -70,7 +70,7 @@ function startWebRtc() {
 
 function stopWebRtc() {
 	if (peerConnection === null) return;
- 	$("#toggleButton").html("Start");
+	$("#toggleButton").html("Start");
 	peerConnection.close();
 	peerConnection = null;
 	var msg = {type: 'stopStream', from: myId, to: "sink"};
