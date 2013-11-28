@@ -7,6 +7,7 @@
 <script src="../lib/webrtc-polyfill.js"></script>
 
 <button id="toggleButton">Start</button>
+<select id="videoSelect"></select>
 <hr>
 <div id="videoContainer"></div>
 
@@ -27,6 +28,25 @@ $("#toggleButton").click(function() {
 		stopWebRtc();	
 	}
 });
+
+if (typeof MediaStreamTrack === "undefined" || MediaStreamTrack.getSources === undefined) {
+	console.log("MediaStreamTrack not supported, using default video media.");
+}
+else {
+	MediaStreamTrack.getSources(function(sourceInfos) {
+		var videoNb = 1;
+		for(var i=0; i<sourceInfos.length; i++) {
+			var sourceInfo = sourceInfos[i];
+			if (sourceInfo.kind !== 'video')
+				continue;
+			var option = $("<option>");
+			option.attr("value", sourceInfo.id);	
+			option.text(sourceInfo.label || "camera " + videoNb);
+			$("#videoSelect").append(option);
+			videoNb++;
+		}
+	});
+}
 
 var sock = new SockJS("http://"+window.location.host+"/sig"); 
 sock.onopen = function() {
@@ -54,8 +74,15 @@ function startWebRtc() {
 	if (peerConnection !== null) return;
 	$("#toggleButton").html("Stop");
 	var video = $("#liveVideo").get(0);
+	var constraints = null;
+	if ($("#videoSelect").is(":empty")) {
+		constraints = {video: true};
+	}
+	else {
+		constraints = {video: {optional: [{sourceId: $("#videoSelect").val()}]}};
+	}
 	getUserMedia(
-		{video: true},
+		constraints,
 		function(stream) {
 			var video = $("<video width='320' height='240' autoplay></video>");
 			video.get(0).src = URL.createObjectURL(stream);
