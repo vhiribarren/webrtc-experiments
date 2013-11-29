@@ -1,6 +1,6 @@
 var conf = module.exports = {};
 
-conf.server = {}
+conf.server = {};
 conf.server.port = 8080;
 
 conf.log = {};

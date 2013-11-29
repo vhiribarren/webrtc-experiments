@@ -122,7 +122,7 @@ describe("Signalization", function() {
 		it("should refuse registration if another client is already registered with same id", function(done) {
 			var otherClient = sockjs.create(serverUrl);
 			otherClient.once('connection', function() {
-	            client.write(JSON.stringify({type: 'register', from: 'myId'}));
+				client.write(JSON.stringify({type: 'register', from: 'myId'}));
 			});
 			client.once('data', function(msg) {
 				var parsedMsg = JSON.parse(msg);
@@ -141,8 +141,8 @@ describe("Signalization", function() {
 				var parsedMsg = JSON.parse(msg);
 				assert.equal(parsedMsg.type, 'ok');
 				client.once('data', function(msg) {
-	                var parsedMsg = JSON.parse(msg);
-		            assert.equal(parsedMsg.type, 'error');
+					var parsedMsg = JSON.parse(msg);
+					assert.equal(parsedMsg.type, 'error');
 					assert.equal(parsedMsg.code, 'peer-unavailable');
 					done();
 				});
